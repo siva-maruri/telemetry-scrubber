@@ -19,7 +19,9 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: ruff format --check .
+      - run: mypy
       - run: pytest -q
+      - run: python bench/bench_scrubber.py
 
   shellcheck:
     runs-on: ubuntu-latest
