@@ -61,3 +61,12 @@ def test_aws_key_and_jwt():
     assert matches("aws_access_key", "key AKIAIOSFODNN7EXAMPLE used") == ["AKIAIOSFODNN7EXAMPLE"]
     jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
     assert matches("jwt", f"token={jwt}") == [jwt]
+
+
+def test_international_phone_needs_plus_and_sane_length():
+    assert matches("phone_intl", "call +44 20 7946 0958 today") == ["+44 20 7946 0958"]
+    assert matches("phone_intl", "tel:+91 98765 43210") == ["+91 98765 43210"]
+    assert matches("phone_intl", "+49 (0)30 123456") == ["+49 (0)30 123456"]
+    assert matches("phone_intl", "build 2026.09.14 #4455") == []
+    assert matches("phone_intl", "delta +12 -3") == []
+    assert matches("phone_intl", "+1234567890123456789") == []  # longer than E.164 allows
