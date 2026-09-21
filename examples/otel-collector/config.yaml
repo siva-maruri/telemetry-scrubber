@@ -1,0 +1,73 @@
+# Gateway collector config used in front of the Python scrubber.
+#
+# Cheap, pattern-based cleanup happens here so obvious secrets never leave the
+# collector. Entropy checks and HMAC tokenization run in telemetry_scrubber
+# because they need the tokenization key (Key Vault) and more context than OTTL has.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+
+  # Credential headers are dropped, not masked. Nothing downstream needs them.
+  attributes/drop-credentials:
+    actions:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.request.header.x-api-key
+        action: delete
+
+  redaction:
+    allow_all_keys: true
+    blocked_values:
+      - "4[0-9]{12}(?:[0-9]{3})?"    # Visa
+      - "5[1-5][0-9]{14}"            # Mastercard
+      - "(?:AKIA|ASIA)[A-Z0-9]{16}"  # AWS access key id
+    summary: info
+
+  transform/scrub:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - replace_pattern(span.attributes["url.full"], "sig=[^&]+", "sig=REDACTED")
+          - replace_pattern(span.attributes["url.query"], "sig=[^&]+", "sig=REDACTED")
+          - replace_pattern(span.name, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "{email}")
+    log_statements:
+      - context: log
+        statements:
+          - replace_pattern(log.body, "(?i)(AccountKey|SharedAccessKey)=[A-Za-z0-9+/=]+", "$$1=REDACTED")
+          - replace_pattern(log.body, "sig=[^&\\s]+", "sig=REDACTED")
+
+  batch:
+    send_batch_size: 8192
+    timeout: 2s
+
+exporters:
+  debug:
+    verbosity: basic
+  # Swap in the real backend, e.g. the scrubber service or Event Hubs:
+  # otlphttp:
+  #   endpoint: https://scrubber.internal.example:4318
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/drop-credentials, redaction, transform/scrub, batch]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/scrub, batch]
+      exporters: [debug]
