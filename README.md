@@ -9,7 +9,8 @@ This library is the piece that sits in the pipeline and cleans it up.
 
 ## What it does
 
-- **Regex detectors** for emails, US phone numbers, SSNs, card numbers (Luhn-checked),
+- **Regex detectors** for emails, phone numbers (US format, and international with a `+`
+  country code), SSNs, card numbers (Luhn-checked),
   JWTs, AWS access keys, Azure SAS signatures, storage/Event Hubs connection-string keys,
   bearer tokens, and PEM private keys.
 - **Entropy detection** for secrets that don't match a known format (random API keys,
@@ -17,8 +18,8 @@ This library is the piece that sits in the pipeline and cleans it up.
 - **Redaction** for secrets. Always. There's no reason to keep a partial API key.
 - **Tokenization** for PII you still want to group by (emails, user ids). Same input, same
   token, so counts and joins still work on the scrubbed data.
-- An OpenTelemetry `SpanExporter` wrapper, a small CLI for JSON-lines dumps, and an
-  example Collector config for the pattern-based part.
+- OpenTelemetry exporter wrappers for spans and log records, a small CLI for JSON-lines
+  dumps, and an example Collector config for the pattern-based part.
 
 ## Quick start
 
@@ -59,6 +60,22 @@ provider.add_span_processor(BatchSpanProcessor(exporter))
 
 Span names, attributes, event attributes and status descriptions are scrubbed. Trace and
 span ids are left alone so traces still stitch together.
+
+Log records work the same way:
+
+```python
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from telemetry_scrubber.otel_logs import ScrubbingLogRecordExporter
+
+logger_provider.add_log_record_processor(
+    BatchLogRecordProcessor(ScrubbingLogRecordExporter(OTLPLogExporter(), scrubber))
+)
+```
+
+The body and attributes are scrubbed, including `exception.message` and
+`exception.stacktrace`, which is where card numbers and connection strings in error messages
+usually end up. The logs SDK is still underscore-prefixed upstream and has changed between
+releases; this is written against opentelemetry-sdk 1.44.
 
 ### Key from Azure Key Vault
 
@@ -137,11 +154,10 @@ rather than passed through in clear.
 
 ## Known gaps
 
-- Phone detection is US-only.
+- International numbers are only caught with a leading `+` and country code. Local formats
+  without one (`020 7946 0958`) vary too much by country to match without false positives.
 - No name or street-address detection. Regex is the wrong tool for that; it would need an
   NER model, which is too slow for this path.
-- Log records via the SDK aren't wrapped yet, only spans. The CLI and Collector config
-  cover logs for now.
 - Thresholds (4.5 bits/char for base64, 3.0 for hex) are starting points taken from common
   secret scanners. Expect to tune them on real traffic.
 

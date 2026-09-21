@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- `ScrubbingLogRecordExporter`: scrubs log record bodies and attributes, including
+  exception messages and stack traces. Trace context is kept.
+- International phone numbers (`phone_intl`): a leading `+`, country code, 8-15 digits
+  (E.164). Tokenized like other phone numbers when a key is configured.
+
 ## 0.2.0
 
 - Cards: a card number followed by another digit group (`4111 1111 1111 1111 0`) was

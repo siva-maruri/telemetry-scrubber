@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "telemetry-scrubber"
-version = "0.2.0"
+version = "0.3.0"
 description = "PII and secret scrubbing for OpenTelemetry spans and logs"
 readme = "README.md"
 requires-python = ">=3.10"
