@@ -52,7 +52,7 @@ class EntropyDetector:
         return k in self.allow_keys or k.endswith(self.allow_key_suffixes)
 
     def find(self, text: str, key: str | None = None) -> Iterator[tuple[int, int]]:
-        if self.key_allowed(key):
+        if len(text) < 20 or self.key_allowed(key):
             return
         for m in _CANDIDATE.finditer(text):
             token = m.group(0)

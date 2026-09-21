@@ -11,7 +11,7 @@ from .scrubber import Scrubber
 from .tokens import Tokenizer
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="telemetry_scrubber")
     p.add_argument("path", help="JSON-lines file, '-' for stdin")
     p.add_argument("--tokenize", action="store_true", help="tokenize PII using SCRUBBER_TOKEN_KEY")
