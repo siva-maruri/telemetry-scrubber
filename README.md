@@ -85,6 +85,19 @@ bash scripts/scan_dumps.sh ./dumps            # what would be scrubbed, per file
 bash scripts/scan_dumps.sh ./dumps ./clean    # write scrubbed copies
 ```
 
+## Performance
+
+`bench/bench_scrubber.py` scrubs 20,000 span-shaped attribute maps (15 to 18 attributes,
+5% carrying a secret or PII). Per-detector pre-checks skip the full regex when a value
+can't possibly match (no `@` means no email, no `sig=` means no SAS signature), and the
+entropy pass skips anything under 20 characters. When those went in (0.2.0) the median
+went from about 115 to about 85 microseconds per span on a single-vCPU sandbox, roughly
+11,700 spans per second per core. Run it on your own hardware before sizing anything; the
+number moves a lot with how much free text your spans carry.
+
+A property test runs every generated input through the scrubber with and without the
+pre-checks and requires identical output, so they can't quietly change what gets caught.
+
 ## Design notes
 
 **HMAC, not a plain hash.** SHA-256 of an email looks anonymous but isn't: hash a list of
@@ -108,6 +121,17 @@ including the `sig=`), so where a named detector already matched, the named dete
 checked. That removes most of the noise from long identifiers like
 `OrderFulfillmentServiceHandler` or pod names.
 
+**Cards are matched by digit group, not by regex alone.** Property tests found that
+`4111 1111 1111 1111 0` slipped through: the regex took all 17 digits, Luhn failed, and
+nothing was redacted. Now the regex only finds digit runs, and the card check tries
+contiguous groups of 13 to 19 digits inside them. A run with no separators stays one
+group, so a 20-digit order id doesn't get carved into windows that pass Luhn by chance.
+
+**Rescan after redacting.** The same tests found that redacting a PEM header could expose
+a phone number whose boundary check had failed on the header's dashes. Strings that had a
+finding get rescanned (up to two more passes) so scrubbing the output again changes
+nothing.
+
 **Fail closed.** Attributes marked for tokenization are redacted if no key is configured,
 rather than passed through in clear.
 
@@ -125,5 +149,8 @@ rather than passed through in clear.
 
 ```bash
 pip install -e ".[dev]"
-ruff check . && pytest -q
+ruff check . && mypy && pytest -q
+python bench/bench_scrubber.py
 ```
+
+The package is fully typed (`mypy --strict`, ships `py.typed`).
