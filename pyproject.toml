@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "telemetry-scrubber"
-version = "0.3.0"
+version = "0.4.0"
 description = "PII and secret scrubbing for OpenTelemetry spans and logs"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,7 +15,15 @@ dependencies = []
 [project.optional-dependencies]
 otel = ["opentelemetry-sdk>=1.20"]
 azure = ["azure-identity>=1.15", "azure-keyvault-secrets>=4.7"]
-dev = ["pytest>=7", "hypothesis>=6.100", "mypy>=1.10", "ruff>=0.4", "opentelemetry-sdk>=1.20"]
+phones = ["phonenumbers>=8.13"]
+dev = [
+    "pytest>=7",
+    "hypothesis>=6.100",
+    "mypy>=1.10",
+    "ruff>=0.4",
+    "opentelemetry-sdk>=1.20",
+    "phonenumbers>=8.13",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -39,5 +47,5 @@ testpaths = ["tests"]
 
 [[tool.mypy.overrides]]
 # Optional [azure] extra: may be absent, and azure-keyvault-secrets ships no type info.
-module = ["azure.*"]
+module = ["azure.*", "phonenumbers.*"]
 ignore_missing_imports = true

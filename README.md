@@ -115,6 +115,36 @@ number moves a lot with how much free text your spans carry.
 A property test runs every generated input through the scrubber with and without the
 pre-checks and requires identical output, so they can't quietly change what gets caught.
 
+## Tuning the entropy thresholds
+
+`bench/eval_entropy.py` measures precision and recall across a grid of thresholds. On its
+synthetic corpus (1,500 generated secrets; 3,000 benign values including mixed-case class
+names and git SHAs written into log text) the defaults gave precision 0.826 and recall 0.899
+when this was written. Dropping the base64 threshold to 4.0 catches more secrets (recall
+0.994) but precision falls to 0.696. Most of the remaining false positives at the default
+are git SHAs in free text, which is the price of allowlisting by attribute key (see below).
+
+Synthetic data only proves the tool works. Label a few hundred values from your own spans
+(`{"text": ..., "secret": true}` per line) and run `python bench/eval_entropy.py sample.jsonl`
+before changing the defaults.
+
+## Local-format phone numbers
+
+Numbers written without a `+` country code (`020 7946 0958`) look like any other digit run to
+a regex. If you know where your users are, add the libphonenumber-backed detector for those
+countries (`pip install -e ".[phones]"`):
+
+```python
+from telemetry_scrubber import Scrubber, default_detectors
+from telemetry_scrubber.phones import local_phone_detector
+
+scrubber = Scrubber(detectors=[*default_detectors(), local_phone_detector(["GB", "IN"])])
+```
+
+It only flags numbers that are valid in those numbering plans and grouped the way the country
+writes them, so order ids and dates pass through. Checking against every country would make
+almost any 8 to 12 digit run a "valid" number somewhere, which is why it's opt-in per region.
+
 ## Design notes
 
 **HMAC, not a plain hash.** SHA-256 of an email looks anonymous but isn't: hash a list of
@@ -152,14 +182,11 @@ nothing.
 **Fail closed.** Attributes marked for tokenization are redacted if no key is configured,
 rather than passed through in clear.
 
-## Known gaps
+## Out of scope
 
-- International numbers are only caught with a leading `+` and country code. Local formats
-  without one (`020 7946 0958`) vary too much by country to match without false positives.
-- No name or street-address detection. Regex is the wrong tool for that; it would need an
-  NER model, which is too slow for this path.
-- Thresholds (4.5 bits/char for base64, 3.0 for hex) are starting points taken from common
-  secret scanners. Expect to tune them on real traffic.
+Names and street addresses in free text. That's named-entity recognition (Microsoft Presidio
+or a spaCy model), which is too slow for an export path that runs on every span. Run it as an
+offline scan over dumps if you need it; the CLI's JSON-lines output is a convenient input.
 
 ## Development
 

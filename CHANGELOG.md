@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- `telemetry_scrubber.phones.local_phone_detector(regions)`: local-format numbers validated
+  against the given countries' numbering plans with libphonenumber (`[phones]` extra).
+  Uses strict grouping, because some plans accept almost any digit run.
+- `bench/eval_entropy.py`: precision and recall across entropy thresholds, on a synthetic
+  corpus or your own labelled sample.
+
 ## 0.3.0
 
 - `ScrubbingLogRecordExporter`: scrubs log record bodies and attributes, including
