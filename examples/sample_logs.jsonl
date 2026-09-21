@@ -1,0 +1,4 @@
+{"timestamp": "2026-09-14T17:02:11Z", "severity": "ERROR", "body": "upload failed https://telemetryarchive.blob.core.windows.net/raw/2026/09/14/part-0007.parquet?sv=2022-11-02&sp=w&sig=Xy7Qp9LmN2vR5tK8wZ3aB6cD1eF4gH0%3D", "attributes": {"service.name": "archiver", "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"}}
+{"timestamp": "2026-09-14T17:02:12Z", "severity": "WARN", "body": "password reset requested for jane.doe@contoso.com", "attributes": {"service.name": "identity", "enduser.id": "cust-88213"}}
+{"timestamp": "2026-09-14T17:02:15Z", "severity": "INFO", "body": "GET /api/v2/orders/{id} 200 in 34ms", "attributes": {"service.name": "checkout", "k8s.pod.name": "checkout-7f9c8d6b5-x2k9p"}}
+{"timestamp": "2026-09-14T17:02:19Z", "severity": "ERROR", "body": "retrying with key 9f86d081884c7d659a2feaa0c55ad015 after 429", "attributes": {"service.name": "billing-sync"}}
