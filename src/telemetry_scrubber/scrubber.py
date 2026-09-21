@@ -27,7 +27,7 @@ DEFAULT_TOKENIZE_KEYS = frozenset({"enduser.id", "user.id", "user.email", "custo
 
 # PII detectors whose matches get tokenized instead of redacted (when a tokenizer
 # is configured). Cards and SSNs are always redacted, nobody should be joining on those.
-DEFAULT_TOKENIZE_DETECTORS = frozenset({"email", "phone"})
+DEFAULT_TOKENIZE_DETECTORS = frozenset({"email", "phone", "phone_intl"})
 
 
 @dataclass(frozen=True)

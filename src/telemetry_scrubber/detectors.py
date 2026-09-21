@@ -48,6 +48,12 @@ def card_spans(run: str) -> list[tuple[int, int]]:
     return spans
 
 
+def international_phone_spans(candidate: str) -> list[tuple[int, int]]:
+    """E.164 says 15 digits at most, and nothing real is shorter than 8 with a country code."""
+    digits = sum(c.isdigit() for c in candidate)
+    return [(0, len(candidate))] if 8 <= digits <= 15 else []
+
+
 @dataclass(frozen=True)
 class Detector:
     name: str
@@ -90,13 +96,23 @@ def default_detectors() -> list[Detector]:
             re.compile(r"(?<!\d)(?!000|666|9\d\d)\d{3}-(?!00)\d{2}-(?!0000)\d{4}(?!\d)"),
             hint=re.compile(r"\d{3}-\d{2}-"),
         ),
-        # US numbers only for now. Needs a separator before the last four digits,
+        # US format without a country code. Needs a separator before the last four digits,
         # otherwise every 10-digit id in a URL gets flagged.
         Detector(
             "phone",
             PII,
             re.compile(r"(?<![\d-])(?:\+1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?![\d-])"),
             hint=re.compile(r"\d{3}[\s.-]\d{4}"),
+        ),
+        # Anything written with a leading + and a country code: +44 20 7946 0958,
+        # +91 98765 43210, +49 (0)30 123456. The + is what keeps this from matching every
+        # long number; without it, only the US pattern above applies.
+        Detector(
+            "phone_intl",
+            PII,
+            re.compile(r"(?<![\w+])\+\d(?:[\s.-]?\(?\d+\)?){2,7}(?!\d)"),
+            refine=international_phone_spans,
+            hint="+",
         ),
         Detector(
             "card",
